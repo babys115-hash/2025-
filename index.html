@@ -6,7 +6,9 @@
     <title>美妝用品期限管理 (雲端版)</title>
     <!-- 引入 FontAwesome 圖示 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- 設定網頁圖示 -->
+    <!-- 引入 Tesseract.js (OCR 辨識) -->
+    <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
+    
     <link rel="icon" href="./gudetama.png" type="image/png">
     
     <style>
@@ -112,13 +114,18 @@
             border-bottom: 2px dashed #eee;
         }
 
-        .select-wrapper, .type-select-wrapper {
+        .select-wrapper, .type-select-wrapper, .name-input-wrapper {
             display: flex;
             gap: 5px;
             position: relative;
         }
+        
+        /* 讓品名輸入框佔據剩餘空間 */
+        .name-input-wrapper input {
+            flex: 1;
+        }
 
-        .manage-btn {
+        .manage-btn, .ocr-btn {
             background-color: #f1f2f6;
             border: none;
             border-radius: 10px;
@@ -127,8 +134,18 @@
             color: #777;
             font-size: 0.9em;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
         }
-        .manage-btn:hover { background-color: #e2e2e2; }
+        .manage-btn:hover, .ocr-btn:hover { background-color: #e2e2e2; }
+        
+        /* OCR 辨識中動畫 */
+        .ocr-btn.loading i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         @media (max-width: 480px) {
             .input-group {
@@ -346,104 +363,28 @@
         .delete-btn { background-color: #FFEBEE; color: #ff6b6b; }
         .delete-btn:hover { background-color: var(--danger-color); color: white; }
 
-        /* Status Styles */
         .expired { border-left: 5px solid var(--gray-color); background-color: #f9f9f9; }
         .expired .item-brand { color: var(--gray-color); text-decoration: line-through; }
         .expired .status-text { color: var(--danger-color); font-weight: bold; }
-
         .warning { border-left: 5px solid var(--danger-color); background-color: #FFF3E0; }
         .warning .item-expiry-date { color: var(--danger-color); font-weight: bold; }
-
         .safe { border-left: 5px solid var(--safe-color); }
         .safe .item-expiry-date { color: var(--safe-color); }
-
-        .is-using {
-            border-left: 5px solid #2196F3;
-            background-color: #F8FDFF;
-        }
-
-        .finished {
-            border-left: 5px solid var(--done-color);
-            background-color: #f8f9fa;
-            opacity: 0.6;
-            border-color: #eee;
-        }
-        .finished .item-brand, .finished .item-name, .finished .item-note, .finished .item-expiry-date, .finished .item-buy-date, .finished .item-type-badge, .finished .item-capacity-badge, .finished .item-using-badge {
-            text-decoration: line-through;
-            color: var(--gray-color);
-            background-color: transparent;
-        }
+        .is-using { border-left: 5px solid #2196F3; background-color: #F8FDFF; }
+        .finished { border-left: 5px solid var(--done-color); background-color: #f8f9fa; opacity: 0.6; border-color: #eee; }
+        .finished .item-brand, .finished .item-name, .finished .item-note, .finished .item-expiry-date, .finished .item-buy-date, .finished .item-type-badge, .finished .item-capacity-badge, .finished .item-using-badge { text-decoration: line-through; color: var(--gray-color); background-color: transparent; }
         .finished .status-text { display: none; }
-
-        .empty-state {
-            text-align: center;
-            color: #8D6E63;
-            margin-top: 40px;
-            margin-bottom: 40px;
-        }
-        .empty-img {
-            width: 150px;
-            margin-bottom: 10px;
-        }
-        .empty-text {
-            font-size: 1.1em;
-            font-weight: bold;
-            display: block;
-        }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal {
-            background: white;
-            padding: 20px;
-            border-radius: 20px;
-            width: 300px;
-            max-width: 90%;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            border: 4px solid var(--gudetama-yellow);
-        }
+        .empty-state { text-align: center; color: #8D6E63; margin-top: 40px; margin-bottom: 40px; }
+        .empty-img { width: 150px; margin-bottom: 10px; }
+        .empty-text { font-size: 1.1em; font-weight: bold; display: block; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: white; padding: 20px; border-radius: 20px; width: 300px; max-width: 90%; box-shadow: 0 5px 15px rgba(0,0,0,0.2); border: 4px solid var(--gudetama-yellow); }
         .modal h3 { margin-top: 0; color: var(--gudetama-text); text-align: center;}
-        .modal-input-group {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 15px;
-        }
-        .modal-list {
-            list-style: none;
-            padding: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 2px solid #FFF59D;
-            border-radius: 10px;
-        }
-        .modal-list li {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border-bottom: 1px solid #FFF59D;
-            color: var(--gudetama-text);
-        }
+        .modal-input-group { display: flex; gap: 5px; margin-bottom: 15px; }
+        .modal-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; border: 2px solid #FFF59D; border-radius: 10px; }
+        .modal-list li { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #FFF59D; color: var(--gudetama-text); }
         .modal-list li:last-child { border-bottom: none; }
-        .modal-close-btn {
-            width: 100%;
-            padding: 10px;
-            background: #F5F5F5;
-            border: none;
-            border-radius: 10px;
-            margin-top: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #555;
-        }
+        .modal-close-btn { width: 100%; padding: 10px; background: #F5F5F5; border: none; border-radius: 10px; margin-top: 10px; cursor: pointer; font-weight: bold; color: #555; }
     </style>
 </head>
 <body>
@@ -452,7 +393,7 @@
     <div class="header-section">
         <h1>
             <img src="./gudetama.png" class="logo-img" alt="蛋黃哥">
-            美妝用品期限管理
+            美妝用品期限管理 (雲端版)
         </h1>
         <p style="font-size: 0.9em; color: #8D6E63; margin-top: 0;">資料已連線至雲端，換手機也不怕不見囉...</p>
     </div>
@@ -475,7 +416,15 @@
             <button class="manage-btn" onclick="openTypeModal()" title="管理種類"><i class="fa-solid fa-gear"></i></button>
         </div>
         
-        <input type="text" id="nameInput" placeholder="品名 (例: 小黑瓶)" />
+        <!-- 品名 (包含 OCR 按鈕) -->
+        <div class="name-input-wrapper">
+            <input type="text" id="nameInput" placeholder="品名 (可拍照辨識 ->)" />
+            <input type="file" id="ocrInput" accept="image/*" style="display: none;" onchange="handleOCR(this)">
+            <button class="ocr-btn" onclick="document.getElementById('ocrInput').click()" title="拍照辨識品名">
+                <i class="fa-solid fa-camera"></i>
+            </button>
+        </div>
+        
         <input type="text" id="capacityInput" placeholder="容量 (選填，例: 50ml)" />
         <input type="text" id="noteInput" placeholder="附註 (選填，例: #05號色)" class="full-width" />
         
@@ -489,7 +438,7 @@
             <input type="date" id="expiryDateInput" />
         </div>
 
-        <button class="add-btn full-width" onclick="addItem()" id="addBtn">加入清單</button>
+        <button class="add-btn full-width" onclick="addItem()" id="addBtn">加入清單 (好累...)</button>
     </div>
 
     <!-- 篩選與排序 -->
@@ -525,7 +474,7 @@
     </ul>
 </div>
 
-<!-- Modal 區塊 -->
+<!-- Modal 區塊 (保持不變) -->
 <div id="typeModal" class="modal-overlay">
     <div class="modal">
         <h3>管理種類 (<span id="modalTabName">化妝品</span>)</h3>
@@ -557,15 +506,15 @@
     import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // 2. Firebase 設定 (請替換成您的設定!)
-  const firebaseConfig = {
-  apiKey: "AIzaSyDJxx5CrOZx4_A7mmfmvtLuk5lFjVkSzA8",
-  authDomain: "beauty-manager-1debe.firebaseapp.com",
-  projectId: "beauty-manager-1debe",
-  storageBucket: "beauty-manager-1debe.firebasestorage.app",
-  messagingSenderId: "55967404216",
-  appId: "1:55967404216:web:4b305a7a7ea726e12f644d",
-  measurementId: "G-ECYZR9YQ7J"
-};
+    const firebaseConfig = {
+        // TODO: 請在這裡貼上您從 Firebase Console 複製的 Config
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
 
     // 3. 初始化 Firebase
     const app = initializeApp(firebaseConfig);
@@ -602,6 +551,7 @@
     // 讀取設定檔 (如果有的話)
     async function loadSettings() {
         // 簡單實作：目前設定檔還是存本地端，為了讓每個使用者的選單客製化
+        // 若要雲端同步設定檔，需另外建立 settings collection
         let localSettings = JSON.parse(localStorage.getItem('beautySettings'));
         if(localSettings) {
             userSettings = localSettings;
@@ -609,6 +559,41 @@
         updateTypeSelect();
         updateBrandDatalist();
     }
+    
+    // --- OCR 功能實作 ---
+    window.handleOCR = (input) => {
+        if (input.files && input.files[0]) {
+            const btn = document.querySelector('.ocr-btn');
+            const icon = btn.querySelector('i');
+            
+            // 顯示 Loading
+            btn.classList.add('loading');
+            icon.className = "fa-solid fa-spinner";
+
+            Tesseract.recognize(
+                input.files[0],
+                'eng+chi_tra', // 支援英文與繁體中文
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                console.log(text);
+                // 簡單清理文字：移除換行
+                const cleanText = text.replace(/\n/g, ' ').trim();
+                // 填入輸入框，只取前20個字避免太長
+                document.getElementById('nameInput').value = cleanText.substring(0, 20);
+                
+                // 恢復按鈕
+                btn.classList.remove('loading');
+                icon.className = "fa-solid fa-camera";
+                input.value = ''; // 清空 file input 以便重複選擇
+            }).catch(err => {
+                console.error(err);
+                alert("辨識失敗，請重試");
+                btn.classList.remove('loading');
+                icon.className = "fa-solid fa-camera";
+            });
+        }
+    }
+
 
     // 將函式掛載到 window 以便 HTML onclick 呼叫
     window.switchTab = (tab) => {
@@ -664,7 +649,7 @@
             alert("新增失敗，請檢查網路連線");
         } finally {
             addBtn.disabled = false;
-            addBtn.textContent = "加入清單";
+            addBtn.textContent = "加入清單 (好累...)";
         }
     };
 
@@ -853,7 +838,7 @@
         if (displayItems.length === 0) {
             listContainer.innerHTML = `
                 <li class="empty-state">
-                    <img src="./gudetama2.png" class="empty-img" alt="蛋黃哥"><br>
+                    <img src="./gudetama2.png" class="logo-img" alt="蛋黃哥"><br>
                     <span class="empty-text">啊...好累...這裡什麼都沒有...</span>
                 </li>`;
             return;
