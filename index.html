@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>美妝用品期限管理 (雲端版)</title>
-    <!-- 引入 FontAwesome 圖示 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- 引入 Tesseract.js (OCR 辨識) -->
     <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
-    
     <link rel="icon" href="./gudetama.png" type="image/png">
     
     <style>
@@ -54,6 +51,8 @@
             padding: 25px;
             position: relative;
             border: 4px solid #fff;
+            /* 防止容器本身溢出 */
+            box-sizing: border-box; 
         }
 
         .header-section {
@@ -114,22 +113,39 @@
             border-bottom: 2px dashed #eee;
         }
 
+        /* 讓特定元素跨滿整行 */
+        .full-width { grid-column: 1 / -1; }
+
+        /* --- 日期欄位優化 (解決手機跑版) --- */
+        .date-row {
+            grid-column: 1 / -1; /* 佔滿整行 */
+            display: flex;
+            gap: 10px; /* 兩個日期中間的間距 */
+        }
+
+        .date-group {
+            flex: 1; /* 兩個日期平分寬度 */
+            min-width: 0; /* 關鍵！防止內容撐破容器 */
+        }
+        /* --------------------------------- */
+
         .select-wrapper, .type-select-wrapper, .name-input-wrapper {
             display: flex;
             gap: 5px;
             position: relative;
+            min-width: 0; /* 防止 Flex 子元素溢出 */
         }
         
-        /* 讓品名輸入框佔據剩餘空間 */
         .name-input-wrapper input {
             flex: 1;
+            min-width: 0;
         }
 
         .manage-btn, .ocr-btn {
             background-color: #f1f2f6;
             border: none;
             border-radius: 10px;
-            padding: 0 10px;
+            padding: 0;
             cursor: pointer;
             color: #777;
             font-size: 0.9em;
@@ -137,11 +153,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
+            width: 40px; /* 固定寬度 */
+            height: 46px; /* 與 input 高度一致 (padding 12px + border 2px + font size) */
         }
         .manage-btn:hover, .ocr-btn:hover { background-color: #e2e2e2; }
         
-        /* OCR 辨識中動畫 */
         .ocr-btn.loading i {
             animation: spin 1s linear infinite;
         }
@@ -149,21 +165,26 @@
 
         @media (max-width: 480px) {
             .input-group {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr; /* 手機版其餘欄位變一欄 */
+            }
+            .container {
+                padding: 15px; /* 手機版內距縮小，爭取空間 */
+                border-width: 2px;
             }
         }
 
         input, select {
-            padding: 12px;
+            padding: 10px 12px; /* 稍微調整 padding */
             border: 2px solid #FFE082;
             border-radius: 12px;
             outline: none;
             transition: 0.3s;
             width: 100%;
-            box-sizing: border-box;
-            font-size: 1em;
+            box-sizing: border-box; /* 確保寬度包含 padding */
+            font-size: 16px; /* 防止 iOS 自動縮放 */
             background-color: #FFFDF5;
             color: var(--gudetama-text);
+            height: 46px; /* 固定高度讓排版整齊 */
         }
 
         input:focus, select:focus {
@@ -172,15 +193,14 @@
             background-color: white;
         }
 
-        .full-width { grid-column: 1 / -1; }
-
         .date-label {
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: #8D6E63;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
             display: block;
-            margin-left: 5px;
+            margin-left: 2px;
             font-weight: bold;
+            white-space: nowrap; /* 防止文字換行 */
         }
 
         .add-btn {
@@ -250,12 +270,12 @@
             overflow: hidden;
         }
 
-        .item-info { flex: 1; padding-left: 5px; }
+        .item-info { flex: 1; padding-left: 5px; min-width: 0; /* 防止文字過長撐開 */ }
 
         .item-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px;
             flex-wrap: wrap;
             margin-bottom: 4px;
         }
@@ -300,6 +320,7 @@
             font-size: 0.95em; 
             color: #666; 
             display: block;
+            word-break: break-all; /* 防止長單字撐版 */
         }
 
         .item-note {
@@ -428,14 +449,16 @@
         <input type="text" id="capacityInput" placeholder="容量 (選填，例: 50ml)" />
         <input type="text" id="noteInput" placeholder="附註 (選填，例: #05號色)" class="full-width" />
         
-        <div class="full-width">
-            <span class="date-label">購買日期 (選填)</span>
-            <input type="date" id="buyDateInput" />
-        </div>
-
-        <div class="full-width">
-            <span class="date-label">保存期限 (必填)</span>
-            <input type="date" id="expiryDateInput" />
+        <!-- 日期區塊：使用 Flexbox 並排 -->
+        <div class="date-row">
+            <div class="date-group">
+                <span class="date-label">購買日期 (選填)</span>
+                <input type="date" id="buyDateInput" />
+            </div>
+            <div class="date-group">
+                <span class="date-label">保存期限 (必填)</span>
+                <input type="date" id="expiryDateInput" />
+            </div>
         </div>
 
         <button class="add-btn full-width" onclick="addItem()" id="addBtn">加入清單 (好累...)</button>
@@ -550,8 +573,6 @@
 
     // 讀取設定檔 (如果有的話)
     async function loadSettings() {
-        // 簡單實作：目前設定檔還是存本地端，為了讓每個使用者的選單客製化
-        // 若要雲端同步設定檔，需另外建立 settings collection
         let localSettings = JSON.parse(localStorage.getItem('beautySettings'));
         if(localSettings) {
             userSettings = localSettings;
@@ -566,25 +587,20 @@
             const btn = document.querySelector('.ocr-btn');
             const icon = btn.querySelector('i');
             
-            // 顯示 Loading
             btn.classList.add('loading');
             icon.className = "fa-solid fa-spinner";
 
             Tesseract.recognize(
                 input.files[0],
-                'eng+chi_tra', // 支援英文與繁體中文
+                'eng+chi_tra', 
                 { logger: m => console.log(m) }
             ).then(({ data: { text } }) => {
-                console.log(text);
-                // 簡單清理文字：移除換行
                 const cleanText = text.replace(/\n/g, ' ').trim();
-                // 填入輸入框，只取前20個字避免太長
                 document.getElementById('nameInput').value = cleanText.substring(0, 20);
                 
-                // 恢復按鈕
                 btn.classList.remove('loading');
                 icon.className = "fa-solid fa-camera";
-                input.value = ''; // 清空 file input 以便重複選擇
+                input.value = ''; 
             }).catch(err => {
                 console.error(err);
                 alert("辨識失敗，請重試");
@@ -595,7 +611,6 @@
     }
 
 
-    // 將函式掛載到 window 以便 HTML onclick 呼叫
     window.switchTab = (tab) => {
         currentTab = tab;
         currentBrandFilter = 'all';
@@ -634,7 +649,6 @@
                 createdAt: new Date().toISOString()
             });
 
-            // 清空欄位
             document.getElementById('brandInput').value = '';
             document.getElementById('nameInput').value = '';
             document.getElementById('capacityInput').value = '';
@@ -649,7 +663,7 @@
             alert("新增失敗，請檢查網路連線");
         } finally {
             addBtn.disabled = false;
-            addBtn.textContent = "加入清單";
+            addBtn.textContent = "加入清單 (好累...)";
         }
     };
 
@@ -810,7 +824,6 @@
             });
             brandFilterSelect.value = currentBrandFilter;
 
-            // 使用所有設定的種類做篩選清單
             const types = userSettings.types[currentTab];
             typeFilterSelect.innerHTML = '<option value="all">顯示全部</option>';
             types.forEach(type => {
@@ -838,7 +851,7 @@
         if (displayItems.length === 0) {
             listContainer.innerHTML = `
                 <li class="empty-state">
-                    <img src="./gudetama2.png" class="logo-img" alt="蛋黃哥"><br>
+                    <img src="./gudetama2.png" class="empty-img" alt="蛋黃哥"><br>
                     <span class="empty-text">啊...好累...這裡什麼都沒有...</span>
                 </li>`;
             return;
