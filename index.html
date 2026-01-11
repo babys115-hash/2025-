@@ -46,6 +46,7 @@
             text-align: center;
             color: var(--primary-pink);
             margin-bottom: 20px;
+            font-size: 1.5em; /* 手機版標題字體稍微縮小以防換行 */
         }
 
         /* Tabs */
@@ -256,4 +257,490 @@
 
         .item-buy-date {
             font-size: 0.8em;
-            color:
+            color: #aaa;
+        }
+
+        /* Actions Buttons */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            transition: 0.2s;
+        }
+
+        .finish-btn { background-color: #f1f2f6; color: #a4b0be; }
+        .finish-btn:hover { background-color: var(--safe-color); color: white; }
+        .finished .finish-btn { background-color: var(--safe-color); color: white; }
+
+        .delete-btn { background-color: #fff0f0; color: #ff6b6b; }
+        .delete-btn:hover { background-color: var(--danger-color); color: white; }
+
+        /* Status Styles */
+        .expired { border-left: 5px solid var(--gray-color); background-color: #f9f9f9; }
+        .expired .item-brand { color: var(--gray-color); text-decoration: line-through; }
+        .expired .status-text { color: var(--danger-color); font-weight: bold; }
+
+        .warning { border-left: 5px solid var(--danger-color); background-color: #fff5f5; }
+        .warning .item-expiry-date { color: var(--danger-color); font-weight: bold; }
+
+        .safe { border-left: 5px solid var(--safe-color); }
+        .safe .item-expiry-date { color: var(--safe-color); }
+
+        .finished {
+            border-left: 5px solid var(--done-color);
+            background-color: #f8f9fa;
+            opacity: 0.6;
+        }
+        .finished .item-brand, .finished .item-name, .finished .item-note, .finished .item-expiry-date, .finished .item-buy-date, .finished .item-type-badge, .finished .item-capacity-badge {
+            text-decoration: line-through;
+            color: var(--gray-color);
+            background-color: #eee;
+        }
+        .finished .status-text { display: none; }
+
+        .empty-message { text-align: center; color: #ccc; margin-top: 30px; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 300px;
+            max-width: 90%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .modal h3 { margin-top: 0; color: #333; }
+        .modal-input-group {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .modal-list {
+            list-style: none;
+            padding: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .modal-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-list li:last-child { border-bottom: none; }
+        .modal-close-btn {
+            width: 100%;
+            padding: 10px;
+            background: #eee;
+            border: none;
+            border-radius: 8px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1><i class="fa-solid fa-pump-soap"></i> 美妝用品期限管理小幫手</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('makeup')">💄 化妝品</button>
+        <button class="tab-btn" onclick="switchTab('skincare')">🧴 保養品</button>
+    </div>
+
+    <!-- 輸入區塊 -->
+    <div class="input-group">
+        <!-- 品牌輸入 (Datalist) -->
+        <div style="position: relative;">
+            <input type="text" id="brandInput" list="brandList" placeholder="品牌 (打字搜尋)" />
+            <datalist id="brandList">
+                <option value="Chanel">
+                <option value="Dior">
+                <option value="YSL">
+                <option value="Estee Lauder 雅詩蘭黛">
+                <option value="Lancome 蘭蔻">
+                <option value="SK-II">
+                <option value="Kiehl's 契爾氏">
+                <option value="Shiseido 資生堂">
+                <option value="Clé de Peau 肌膚之鑰">
+                <option value="Giorgio Armani">
+                <option value="MAC">
+                <option value="NARS">
+                <option value="Bobbi Brown">
+                <option value="Shu Uemura 植村秀">
+                <option value="Biotherm 碧兒泉">
+                <option value="Clarins 克蘭詩">
+                <option value="Clinique 倩碧">
+                <option value="Jo Malone">
+                <option value="L'Occitane 歐舒丹">
+                <option value="Innisfree">
+                <option value="Laneige 蘭芝">
+                <option value="Sulwhasoo 雪花秀">
+            </datalist>
+        </div>
+        
+        <!-- 種類選擇 -->
+        <div class="type-select-wrapper">
+            <select id="typeInput">
+                <!-- JS 自動填入 -->
+            </select>
+            <button class="manage-btn" onclick="openTypeModal()" title="管理種類"><i class="fa-solid fa-gear"></i></button>
+        </div>
+        
+        <input type="text" id="nameInput" placeholder="品名 (例: 小黑瓶)" />
+        
+        <!-- 新增：容量欄位 -->
+        <input type="text" id="capacityInput" placeholder="容量 (選填，例: 50ml)" />
+        
+        <input type="text" id="noteInput" placeholder="附註 (選填，例: #05號色)" class="full-width" />
+        
+        <div class="full-width">
+            <span class="date-label">購買日期 (選填)</span>
+            <input type="date" id="buyDateInput" />
+        </div>
+
+        <div class="full-width">
+            <span class="date-label">保存期限 (必填)</span>
+            <input type="date" id="expiryDateInput" />
+        </div>
+
+        <button class="add-btn full-width" onclick="addItem()">新 增</button>
+    </div>
+
+    <!-- 篩選與排序 -->
+    <div class="filter-bar">
+        <div class="filter-item">
+            <span class="filter-label"><i class="fa-solid fa-filter"></i> 品牌篩選</span>
+            <select id="brandFilter" onchange="filterChange()">
+                <option value="all">顯示全部</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <span class="filter-label"><i class="fa-solid fa-sort"></i> 排序方式</span>
+            <select id="sortSelect" onchange="sortChange()">
+                <option value="asc">📅 到期日：由近到遠</option>
+                <option value="desc">📅 到期日：由遠到近</option>
+            </select>
+        </div>
+    </div>
+
+    <ul id="itemList"></ul>
+</div>
+
+<!-- 種類管理視窗 (Modal) -->
+<div id="typeModal" class="modal-overlay">
+    <div class="modal">
+        <h3>管理種類 (<span id="modalTabName">化妝品</span>)</h3>
+        <div class="modal-input-group">
+            <input type="text" id="newTypeInput" placeholder="輸入新種類名稱">
+            <button class="add-btn" style="padding: 0 15px;" onclick="addNewType()">新增</button>
+        </div>
+        <ul id="typeList" class="modal-list"></ul>
+        <button class="modal-close-btn" onclick="closeTypeModal()">關閉</button>
+    </div>
+</div>
+
+<script>
+    let currentTab = 'makeup';
+    let currentBrandFilter = 'all';
+    let currentSort = 'asc';
+    let items = JSON.parse(localStorage.getItem('beautyItems')) || [];
+
+    const defaultTypes = {
+        makeup: ['粉底液', '氣墊粉餅', '蜜粉', '口紅', '唇釉', '眼影', '眼線', '腮紅', '眉筆', '睫毛膏', '遮瑕', '修容', '打亮', '妝前乳'],
+        skincare: ['化妝水', '精華液', '乳液', '乳霜', '眼霜', '洗面乳', '卸妝油', '卸妝水', '面膜', '凍膜', '防曬', '護唇膏', '去角質', '護手霜']
+    };
+
+    let userTypes = JSON.parse(localStorage.getItem('beautyTypes'));
+    if (!userTypes || !userTypes.makeup || userTypes.makeup.length === 0) {
+        userTypes = JSON.parse(JSON.stringify(defaultTypes));
+        localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateTypeSelect();
+        renderList();
+    });
+
+    function switchTab(tab) {
+        currentTab = tab;
+        currentBrandFilter = 'all';
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        const btnIndex = tab === 'makeup' ? 0 : 1;
+        document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
+        updateTypeSelect();
+        renderList();
+    }
+
+    function updateTypeSelect() {
+        const select = document.getElementById('typeInput');
+        select.innerHTML = '<option value="" disabled selected>請選擇種類</option>';
+        
+        const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
+        
+        types.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            select.appendChild(option);
+        });
+    }
+
+    /* Modal Functions */
+    function openTypeModal() {
+        document.getElementById('modalTabName').textContent = currentTab === 'makeup' ? '化妝品' : '保養品';
+        renderTypeListModal();
+        document.getElementById('typeModal').style.display = 'flex';
+    }
+
+    function closeTypeModal() {
+        document.getElementById('typeModal').style.display = 'none';
+        updateTypeSelect();
+    }
+
+    function renderTypeListModal() {
+        const list = document.getElementById('typeList');
+        list.innerHTML = '';
+        const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
+        
+        types.forEach((type, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span>${type}</span>
+                <button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeType(${index})">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function addNewType() {
+        const input = document.getElementById('newTypeInput');
+        const val = input.value.trim();
+        if (val) {
+            userTypes[currentTab].push(val);
+            localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
+            input.value = '';
+            renderTypeListModal();
+        }
+    }
+
+    function removeType(index) {
+        if(confirm('確定刪除此種類？')) {
+            userTypes[currentTab].splice(index, 1);
+            localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
+            renderTypeListModal();
+        }
+    }
+
+    function addItem() {
+        const brand = document.getElementById('brandInput').value.trim();
+        const type = document.getElementById('typeInput').value;
+        const name = document.getElementById('nameInput').value.trim();
+        const capacity = document.getElementById('capacityInput').value.trim(); 
+        const note = document.getElementById('noteInput').value.trim();
+        const buyDate = document.getElementById('buyDateInput').value; 
+        const expiryDate = document.getElementById('expiryDateInput').value; 
+
+        if (!brand || !type || !expiryDate) {
+            alert('請至少填寫品牌、種類與保存期限！');
+            return;
+        }
+
+        const newItem = {
+            id: Date.now(),
+            category: currentTab,
+            brand: brand,
+            type: type,
+            name: name,
+            capacity: capacity,
+            note: note,
+            buyDate: buyDate,
+            expiryDate: expiryDate,
+            isFinished: false
+        };
+
+        items.push(newItem);
+        saveData();
+        
+        document.getElementById('brandInput').value = '';
+        document.getElementById('nameInput').value = '';
+        document.getElementById('capacityInput').value = '';
+        document.getElementById('noteInput').value = '';
+        document.getElementById('buyDateInput').value = '';
+        document.getElementById('expiryDateInput').value = '';
+        
+        currentBrandFilter = 'all'; 
+        renderList();
+    }
+
+    function toggleFinish(id) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item.isFinished = !item.isFinished;
+            saveData();
+            renderList(false);
+        }
+    }
+
+    function deleteItem(id) {
+        if(confirm('確定要永久刪除這個項目嗎？')) {
+            items = items.filter(item => item.id !== id);
+            saveData();
+            renderList();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('beautyItems', JSON.stringify(items));
+    }
+
+    function filterChange() {
+        currentBrandFilter = document.getElementById('brandFilter').value;
+        renderList(false);
+    }
+
+    function sortChange() {
+        currentSort = document.getElementById('sortSelect').value;
+        renderList(false);
+    }
+
+    function renderList(reBuildFilter = true) {
+        const listContainer = document.getElementById('itemList');
+        const filterSelect = document.getElementById('brandFilter');
+        listContainer.innerHTML = '';
+
+        let tabItems = items.filter(item => item.category === currentTab);
+
+        if (reBuildFilter) {
+            const brands = [...new Set(tabItems.map(item => item.brand))].sort();
+            filterSelect.innerHTML = '<option value="all">顯示全部</option>';
+            brands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand;
+                filterSelect.appendChild(option);
+            });
+            filterSelect.value = currentBrandFilter;
+        }
+
+        let displayItems = tabItems;
+        if (currentBrandFilter !== 'all') {
+            displayItems = tabItems.filter(item => item.brand === currentBrandFilter);
+        }
+
+        displayItems.sort((a, b) => {
+            if (a.isFinished !== b.isFinished) return a.isFinished ? 1 : -1;
+            const dateA = new Date(a.expiryDate);
+            const dateB = new Date(b.expiryDate);
+            return currentSort === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+
+        if (displayItems.length === 0) {
+            listContainer.innerHTML = '<li class="empty-message">目前沒有資料。</li>';
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        displayItems.forEach(item => {
+            const expiry = new Date(item.expiryDate);
+            const diffTime = expiry - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            let statusClass = 'safe';
+            let statusText = '';
+            let icon = '<i class="fa-regular fa-calendar-check"></i>';
+
+            if (item.isFinished) {
+                statusClass = 'finished';
+                icon = '<i class="fa-solid fa-check-circle"></i> 已用完';
+            } else {
+                if (diffDays < 0) {
+                    statusClass = 'expired';
+                    statusText = `(已過期 ${Math.abs(diffDays)} 天)`;
+                    icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                } else if (diffDays <= 180) {
+                    statusClass = 'warning';
+                    statusText = `(剩餘 ${diffDays} 天)`;
+                    icon = '<i class="fa-solid fa-clock"></i>';
+                } else {
+                    statusClass = 'safe';
+                    statusText = diffDays > 365 ? '' : `(剩餘 ${diffDays} 天)`;
+                }
+            }
+
+            const noteHtml = item.note ? `<span class="item-note">${item.note}</span>` : '';
+            const typeHtml = item.type ? `<span class="item-type-badge">${item.type}</span>` : '';
+            const capacityHtml = item.capacity ? `<span class="item-capacity-badge">${item.capacity}</span>` : '';
+            const buyDateHtml = item.buyDate ? `<span class="item-buy-date"> (購於 ${item.buyDate})</span>` : '';
+            
+            const dateDisplay = item.isFinished 
+                ? icon 
+                : `${icon} 到期日：${item.expiryDate} <span class="status-text">${statusText}</span>`;
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="item-card ${statusClass}">
+                    <div class="item-info">
+                        <div class="item-header">
+                            <div class="item-brand">${item.brand}</div>
+                            ${typeHtml}
+                            ${capacityHtml}
+                        </div>
+                        <div class="item-name">${item.name}</div>
+                        ${noteHtml}
+                        <div class="item-dates">
+                            <div class="item-expiry-date">
+                                ${dateDisplay}
+                            </div>
+                            ${buyDateHtml}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-icon finish-btn" onclick="toggleFinish(${item.id})" title="${item.isFinished ? '復原' : '標記已用完'}">
+                            <i class="fa-solid ${item.isFinished ? 'fa-rotate-left' : 'fa-check'}"></i>
+                        </button>
+                        <button class="btn-icon delete-btn" onclick="deleteItem(${item.id})" title="永久刪除">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(li);
+        });
+    }
+</script>
+
+</body>
+</html>
