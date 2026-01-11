@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>美妝用品期限管理小幫手</title>
+    <!-- 引入 FontAwesome 圖示 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/en/7/73/Gudetama.png" type="image/png">
+    <!-- 設定網頁圖示 -->
+    <link rel="icon" href="https://stickershop.line-scdn.net/stickershop/v1/product/12975/LINEStorePC/main.png" type="image/png">
     
     <style>
         :root {
@@ -23,7 +25,7 @@
             --tag-text: #E67E22;
             --capacity-bg: #f1f2f6;
             --capacity-text: #747d8c;
-            --using-bg: #E3F2FD; /* 使用中背景色 */
+            --using-bg: #E3F2FD;
             --using-text: #1976D2;
         }
 
@@ -110,9 +112,11 @@
             border-bottom: 2px dashed #eee;
         }
 
-        .type-select-wrapper {
+        /* 讓品牌和種類都有管理按鈕的包裝 */
+        .select-wrapper {
             display: flex;
             gap: 5px;
+            position: relative;
         }
 
         .manage-btn {
@@ -123,6 +127,7 @@
             cursor: pointer;
             color: #777;
             font-size: 0.9em;
+            flex-shrink: 0;
         }
         .manage-btn:hover { background-color: #e2e2e2; }
 
@@ -256,7 +261,6 @@
             font-weight: bold;
         }
 
-        /* 新增：使用中標籤 */
         .item-using-badge {
             background-color: var(--using-bg);
             color: var(--using-text);
@@ -347,7 +351,6 @@
         .safe { border-left: 5px solid var(--safe-color); }
         .safe .item-expiry-date { color: var(--safe-color); }
 
-        /* 使用中特別樣式：藍色邊框 */
         .is-using {
             border-left: 5px solid #2196F3;
             background-color: #F8FDFF;
@@ -382,6 +385,7 @@
             display: block;
         }
 
+        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -452,36 +456,19 @@
         <button class="tab-btn" onclick="switchTab('skincare')">🧴 保養品</button>
     </div>
 
+    <!-- 輸入區塊 -->
     <div class="input-group">
-        <div style="position: relative;">
+        <!-- 品牌輸入 (Datalist + 管理按鈕) -->
+        <div class="select-wrapper">
             <input type="text" id="brandInput" list="brandList" placeholder="品牌 (打字搜尋)" />
             <datalist id="brandList">
-                <option value="Chanel">
-                <option value="Dior">
-                <option value="YSL">
-                <option value="Estee Lauder 雅詩蘭黛">
-                <option value="Lancome 蘭蔻">
-                <option value="SK-II">
-                <option value="Kiehl's 契爾氏">
-                <option value="Shiseido 資生堂">
-                <option value="Clé de Peau 肌膚之鑰">
-                <option value="Giorgio Armani">
-                <option value="MAC">
-                <option value="NARS">
-                <option value="Bobbi Brown">
-                <option value="Shu Uemura 植村秀">
-                <option value="Biotherm 碧兒泉">
-                <option value="Clarins 克蘭詩">
-                <option value="Clinique 倩碧">
-                <option value="Jo Malone">
-                <option value="L'Occitane 歐舒丹">
-                <option value="Innisfree">
-                <option value="Laneige 蘭芝">
-                <option value="Sulwhasoo 雪花秀">
+                <!-- JS 自動填入 -->
             </datalist>
+            <button class="manage-btn" onclick="openBrandModal()" title="管理品牌"><i class="fa-solid fa-gear"></i></button>
         </div>
         
-        <div class="type-select-wrapper">
+        <!-- 種類選擇 -->
+        <div class="select-wrapper">
             <select id="typeInput"></select>
             <button class="manage-btn" onclick="openTypeModal()" title="管理種類"><i class="fa-solid fa-gear"></i></button>
         </div>
@@ -503,6 +490,7 @@
         <button class="add-btn full-width" onclick="addItem()">加入清單 (好累...)</button>
     </div>
 
+    <!-- 篩選與排序 -->
     <div class="filter-bar">
         <div class="filter-item">
             <span class="filter-label"><i class="fa-solid fa-filter"></i> 品牌篩選</span>
@@ -528,6 +516,7 @@
     <ul id="itemList"></ul>
 </div>
 
+<!-- 種類管理視窗 (Modal) -->
 <div id="typeModal" class="modal-overlay">
     <div class="modal">
         <h3>管理種類 (<span id="modalTabName">化妝品</span>)</h3>
@@ -540,6 +529,19 @@
     </div>
 </div>
 
+<!-- 品牌管理視窗 (Modal) -->
+<div id="brandModal" class="modal-overlay">
+    <div class="modal">
+        <h3>管理常用品牌</h3>
+        <div class="modal-input-group">
+            <input type="text" id="newBrandInput" placeholder="輸入新品牌名稱">
+            <button class="add-btn" style="padding: 0 15px;" onclick="addNewBrand()">新增</button>
+        </div>
+        <ul id="modalBrandList" class="modal-list"></ul>
+        <button class="modal-close-btn" onclick="closeBrandModal()">關閉</button>
+    </div>
+</div>
+
 <script>
     let currentTab = 'makeup';
     let currentBrandFilter = 'all';
@@ -547,19 +549,37 @@
     let currentSort = 'asc';
     let items = JSON.parse(localStorage.getItem('beautyItems')) || [];
 
+    /* --- Default Data Init --- */
     const defaultTypes = {
         makeup: ['粉底液', '氣墊粉餅', '蜜粉', '口紅', '唇釉', '眼影', '眼線', '腮紅', '眉筆', '睫毛膏', '遮瑕', '修容', '打亮', '妝前乳'],
         skincare: ['化妝水', '精華液', '乳液', '乳霜', '眼霜', '洗面乳', '卸妝油', '卸妝水', '面膜', '凍膜', '防曬', '護唇膏', '去角質', '護手霜']
     };
 
+    const defaultBrands = [
+        "Chanel", "Dior", "YSL", "Estee Lauder 雅詩蘭黛", "Lancome 蘭蔻", "SK-II", "Kiehl's 契爾氏",
+        "Shiseido 資生堂", "Clé de Peau 肌膚之鑰", "Giorgio Armani", "MAC", "NARS", "Bobbi Brown",
+        "Shu Uemura 植村秀", "Biotherm 碧兒泉", "Clarins 克蘭詩", "Clinique 倩碧", "Jo Malone",
+        "L'Occitane 歐舒丹", "Innisfree", "Laneige 蘭芝", "Sulwhasoo 雪花秀", "CeraVe", "La Roche-Posay 理膚寶水"
+    ];
+
+    // Load or Init Types
     let userTypes = JSON.parse(localStorage.getItem('beautyTypes'));
     if (!userTypes || !userTypes.makeup || userTypes.makeup.length === 0) {
         userTypes = JSON.parse(JSON.stringify(defaultTypes));
         localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
     }
 
+    // Load or Init Brands
+    let userBrands = JSON.parse(localStorage.getItem('beautyBrands'));
+    if (!userBrands || userBrands.length === 0) {
+        userBrands = [...defaultBrands]; // Copy defaults
+        userBrands.sort(); // Alphabetical sort
+        localStorage.setItem('beautyBrands', JSON.stringify(userBrands));
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         updateTypeSelect();
+        updateBrandDatalist();
         renderList();
     });
 
@@ -586,6 +606,62 @@
         });
     }
 
+    function updateBrandDatalist() {
+        const datalist = document.getElementById('brandList');
+        datalist.innerHTML = '';
+        userBrands.sort(); // Keep sorted
+        userBrands.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand;
+            datalist.appendChild(option);
+        });
+    }
+
+    /* --- Brand Modal Functions --- */
+    function openBrandModal() {
+        renderBrandListModal();
+        document.getElementById('brandModal').style.display = 'flex';
+    }
+
+    function closeBrandModal() {
+        document.getElementById('brandModal').style.display = 'none';
+        updateBrandDatalist();
+    }
+
+    function renderBrandListModal() {
+        const list = document.getElementById('modalBrandList');
+        list.innerHTML = '';
+        userBrands.forEach((brand, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${brand}</span><button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeBrand(${index})"><i class="fa-solid fa-times"></i></button>`;
+            list.appendChild(li);
+        });
+    }
+
+    function addNewBrand() {
+        const input = document.getElementById('newBrandInput');
+        const val = input.value.trim();
+        if (val) {
+            // Avoid duplicates
+            if (!userBrands.includes(val)) {
+                userBrands.push(val);
+                userBrands.sort();
+                localStorage.setItem('beautyBrands', JSON.stringify(userBrands));
+            }
+            input.value = '';
+            renderBrandListModal();
+        }
+    }
+
+    function removeBrand(index) {
+        if(confirm('確定刪除此品牌？')) {
+            userBrands.splice(index, 1);
+            localStorage.setItem('beautyBrands', JSON.stringify(userBrands));
+            renderBrandListModal();
+        }
+    }
+
+    /* --- Type Modal Functions --- */
     function openTypeModal() {
         document.getElementById('modalTabName').textContent = currentTab === 'makeup' ? '化妝品' : '保養品';
         renderTypeListModal();
@@ -627,6 +703,7 @@
         }
     }
 
+    /* --- Main Logic --- */
     function addItem() {
         const brand = document.getElementById('brandInput').value.trim();
         const type = document.getElementById('typeInput').value;
@@ -652,7 +729,7 @@
             buyDate: buyDate,
             expiryDate: expiryDate,
             isFinished: false,
-            isUsing: false // 新增使用中狀態
+            isUsing: false
         };
 
         items.push(newItem);
@@ -670,12 +747,10 @@
         renderList();
     }
 
-    // 切換使用中狀態
     function toggleUsing(id) {
         const item = items.find(i => i.id === id);
         if (item) {
             item.isUsing = !item.isUsing;
-            // 如果切換成使用中，確保不會同時是已用完
             if (item.isUsing) item.isFinished = false;
             saveData();
             renderList(false);
@@ -686,7 +761,6 @@
         const item = items.find(i => i.id === id);
         if (item) {
             item.isFinished = !item.isFinished;
-            // 如果切換成已用完，使用中狀態要取消
             if (item.isFinished) item.isUsing = false;
             saveData();
             renderList(false);
@@ -755,8 +829,6 @@
         }
 
         displayItems.sort((a, b) => {
-            // 排序邏輯：已用完 > 未使用 > 使用中 (使用中排最上面)
-            // 權重：使用中(-1) < 未使用(0) < 已用完(1)
             let weightA = a.isFinished ? 1 : (a.isUsing ? -1 : 0);
             let weightB = b.isFinished ? 1 : (b.isUsing ? -1 : 0);
 
@@ -772,7 +844,7 @@
         if (displayItems.length === 0) {
             listContainer.innerHTML = `
                 <li class="empty-state">
-                    <img src="https://upload.wikimedia.org/wikipedia/en/7/73/Gudetama.png" class="empty-img" alt="Gudetama"><br>
+                    <img src="./gudetama2.png" class="logo-img" alt="蛋黃哥"><br>
                     <span class="empty-text">啊...好累...這裡什麼都沒有...</span>
                 </li>`;
             return;
@@ -795,7 +867,6 @@
                 icon = '<i class="fa-solid fa-check-circle"></i> 已用完';
             } else if (item.isUsing) {
                 statusClass = 'is-using';
-                // 使用中也會計算過期日，但樣式不同
                 if (diffDays < 0) {
                     statusText = `(使用中，已過期 ${Math.abs(diffDays)} 天)`;
                     icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
