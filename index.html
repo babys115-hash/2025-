@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>美妝用品期限管理小幫手</title>
+    <title>美妝用品期限管理 (雲端版)</title>
     <!-- 引入 FontAwesome 圖示 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- 設定網頁圖示 -->
-    <link rel="icon" href="https://stickershop.line-scdn.net/stickershop/v1/product/12975/LINEStorePC/main.png" type="image/png">
+    <link rel="icon" href="./gudetama.png" type="image/png">
     
     <style>
         :root {
@@ -112,8 +112,7 @@
             border-bottom: 2px dashed #eee;
         }
 
-        /* 讓品牌和種類都有管理按鈕的包裝 */
-        .select-wrapper {
+        .select-wrapper, .type-select-wrapper {
             display: flex;
             gap: 5px;
             position: relative;
@@ -184,6 +183,13 @@
         .add-btn:active {
             transform: translateY(4px);
             box-shadow: none;
+        }
+        
+        .add-btn:disabled {
+            background-color: #eee;
+            color: #aaa;
+            box-shadow: none;
+            cursor: not-allowed;
         }
 
         .filter-bar {
@@ -448,7 +454,7 @@
             <img src="./gudetama.png" class="logo-img" alt="蛋黃哥">
             美妝用品期限管理
         </h1>
-        <p style="font-size: 0.9em; color: #8D6E63; margin-top: 0;">好麻煩喔...還是記錄一下好了...</p>
+        <p style="font-size: 0.9em; color: #8D6E63; margin-top: 0;">資料已連線至雲端，換手機也不怕不見囉...</p>
     </div>
 
     <div class="tabs">
@@ -458,17 +464,13 @@
 
     <!-- 輸入區塊 -->
     <div class="input-group">
-        <!-- 品牌輸入 (Datalist + 管理按鈕) -->
         <div class="select-wrapper">
             <input type="text" id="brandInput" list="brandList" placeholder="品牌 (打字搜尋)" />
-            <datalist id="brandList">
-                <!-- JS 自動填入 -->
-            </datalist>
+            <datalist id="brandList"></datalist>
             <button class="manage-btn" onclick="openBrandModal()" title="管理品牌"><i class="fa-solid fa-gear"></i></button>
         </div>
         
-        <!-- 種類選擇 -->
-        <div class="select-wrapper">
+        <div class="type-select-wrapper">
             <select id="typeInput"></select>
             <button class="manage-btn" onclick="openTypeModal()" title="管理種類"><i class="fa-solid fa-gear"></i></button>
         </div>
@@ -487,7 +489,7 @@
             <input type="date" id="expiryDateInput" />
         </div>
 
-        <button class="add-btn full-width" onclick="addItem()">加入清單 (好累...)</button>
+        <button class="add-btn full-width" onclick="addItem()" id="addBtn">加入清單 (好累...)</button>
     </div>
 
     <!-- 篩選與排序 -->
@@ -513,10 +515,17 @@
         </div>
     </div>
 
-    <ul id="itemList"></ul>
+    <ul id="itemList">
+        <li class="empty-state">
+            <div style="padding: 20px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 2em; color: #FFD93D;"></i>
+                <br>連線中...
+            </div>
+        </li>
+    </ul>
 </div>
 
-<!-- 種類管理視窗 (Modal) -->
+<!-- Modal 區塊 -->
 <div id="typeModal" class="modal-overlay">
     <div class="modal">
         <h3>管理種類 (<span id="modalTabName">化妝品</span>)</h3>
@@ -529,7 +538,6 @@
     </div>
 </div>
 
-<!-- 品牌管理視窗 (Modal) -->
 <div id="brandModal" class="modal-overlay">
     <div class="modal">
         <h3>管理常用品牌</h3>
@@ -542,48 +550,68 @@
     </div>
 </div>
 
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+    // 1. 匯入 Firebase 模組
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // 2. Firebase 設定 (請替換成您的設定!)
+  const firebaseConfig = {
+  apiKey: "AIzaSyDJxx5CrOZx4_A7mmfmvtLuk5lFjVkSzA8",
+  authDomain: "beauty-manager-1debe.firebaseapp.com",
+  projectId: "beauty-manager-1debe",
+  storageBucket: "beauty-manager-1debe.firebasestorage.app",
+  messagingSenderId: "55967404216",
+  appId: "1:55967404216:web:4b305a7a7ea726e12f644d",
+  measurementId: "G-ECYZR9YQ7J"
+};
+
+    // 3. 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 全域變數
     let currentTab = 'makeup';
     let currentBrandFilter = 'all';
     let currentTypeFilter = 'all'; 
     let currentSort = 'asc';
-    let items = JSON.parse(localStorage.getItem('beautyItems')) || [];
-
-    /* --- Default Data Init --- */
-    const defaultTypes = {
-        makeup: ['粉底液', '氣墊粉餅', '蜜粉', '口紅', '唇釉', '眼影', '眼線', '腮紅', '眉筆', '睫毛膏', '遮瑕', '修容', '打亮', '妝前乳'],
-        skincare: ['化妝水', '精華液', '乳液', '乳霜', '眼霜', '洗面乳', '卸妝油', '卸妝水', '面膜', '凍膜', '防曬', '護唇膏', '去角質', '護手霜']
+    let items = [];
+    
+    // 設定資料 (從雲端讀取或使用預設)
+    let userSettings = {
+        brands: [
+            "Chanel", "Dior", "YSL", "Estee Lauder 雅詩蘭黛", "Lancome 蘭蔻", "SK-II", "Kiehl's 契爾氏",
+            "Shiseido 資生堂", "Clé de Peau 肌膚之鑰", "Giorgio Armani", "MAC", "NARS", "Bobbi Brown",
+            "Shu Uemura 植村秀", "Biotherm 碧兒泉", "Clarins 克蘭詩", "Clinique 倩碧", "Jo Malone",
+            "L'Occitane 歐舒丹", "Innisfree", "Laneige 蘭芝", "Sulwhasoo 雪花秀"
+        ],
+        types: {
+            makeup: ['粉底液', '氣墊粉餅', '蜜粉', '口紅', '唇釉', '眼影', '眼線', '腮紅', '眉筆', '睫毛膏', '遮瑕', '修容', '打亮', '妝前乳'],
+            skincare: ['化妝水', '精華液', '乳液', '乳霜', '眼霜', '洗面乳', '卸妝油', '卸妝水', '面膜', '凍膜', '防曬', '護唇膏', '去角質', '護手霜']
+        }
     };
 
-    const defaultBrands = [
-        "Chanel", "Dior", "YSL", "Estee Lauder 雅詩蘭黛", "Lancome 蘭蔻", "SK-II", "Kiehl's 契爾氏",
-        "Shiseido 資生堂", "Clé de Peau 肌膚之鑰", "Giorgio Armani", "MAC", "NARS", "Bobbi Brown",
-        "Shu Uemura 植村秀", "Biotherm 碧兒泉", "Clarins 克蘭詩", "Clinique 倩碧", "Jo Malone",
-        "L'Occitane 歐舒丹", "Innisfree", "Laneige 蘭芝", "Sulwhasoo 雪花秀", "CeraVe", "La Roche-Posay 理膚寶水"
-    ];
-
-    // Load or Init Types
-    let userTypes = JSON.parse(localStorage.getItem('beautyTypes'));
-    if (!userTypes || !userTypes.makeup || userTypes.makeup.length === 0) {
-        userTypes = JSON.parse(JSON.stringify(defaultTypes));
-        localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
-    }
-
-    // Load or Init Brands
-    let userBrands = JSON.parse(localStorage.getItem('beautyBrands'));
-    if (!userBrands || userBrands.length === 0) {
-        userBrands = [...defaultBrands]; // Copy defaults
-        userBrands.sort(); // Alphabetical sort
-        localStorage.setItem('beautyBrands', JSON.stringify(userBrands));
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        updateTypeSelect();
-        updateBrandDatalist();
+    // 監聽資料庫變化 (即時更新)
+    const q = query(collection(db, "items"));
+    onSnapshot(q, (snapshot) => {
+        items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderList();
     });
 
-    function switchTab(tab) {
+    // 讀取設定檔 (如果有的話)
+    async function loadSettings() {
+        // 簡單實作：目前設定檔還是存本地端，為了讓每個使用者的選單客製化
+        let localSettings = JSON.parse(localStorage.getItem('beautySettings'));
+        if(localSettings) {
+            userSettings = localSettings;
+        }
+        updateTypeSelect();
+        updateBrandDatalist();
+    }
+
+    // 將函式掛載到 window 以便 HTML onclick 呼叫
+    window.switchTab = (tab) => {
         currentTab = tab;
         currentBrandFilter = 'all';
         currentTypeFilter = 'all';
@@ -592,119 +620,10 @@
         document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
         updateTypeSelect();
         renderList();
-    }
+    };
 
-    function updateTypeSelect() {
-        const select = document.getElementById('typeInput');
-        select.innerHTML = '<option value="" disabled selected>請選擇種類</option>';
-        const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
-        types.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            select.appendChild(option);
-        });
-    }
-
-    function updateBrandDatalist() {
-        const datalist = document.getElementById('brandList');
-        datalist.innerHTML = '';
-        userBrands.sort(); // Keep sorted
-        userBrands.forEach(brand => {
-            const option = document.createElement('option');
-            option.value = brand;
-            datalist.appendChild(option);
-        });
-    }
-
-    /* --- Brand Modal Functions --- */
-    function openBrandModal() {
-        renderBrandListModal();
-        document.getElementById('brandModal').style.display = 'flex';
-    }
-
-    function closeBrandModal() {
-        document.getElementById('brandModal').style.display = 'none';
-        updateBrandDatalist();
-    }
-
-    function renderBrandListModal() {
-        const list = document.getElementById('modalBrandList');
-        list.innerHTML = '';
-        userBrands.forEach((brand, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span>${brand}</span><button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeBrand(${index})"><i class="fa-solid fa-times"></i></button>`;
-            list.appendChild(li);
-        });
-    }
-
-    function addNewBrand() {
-        const input = document.getElementById('newBrandInput');
-        const val = input.value.trim();
-        if (val) {
-            // Avoid duplicates
-            if (!userBrands.includes(val)) {
-                userBrands.push(val);
-                userBrands.sort();
-                localStorage.setItem('beautyBrands', JSON.stringify(userBrands));
-            }
-            input.value = '';
-            renderBrandListModal();
-        }
-    }
-
-    function removeBrand(index) {
-        if(confirm('確定刪除此品牌？')) {
-            userBrands.splice(index, 1);
-            localStorage.setItem('beautyBrands', JSON.stringify(userBrands));
-            renderBrandListModal();
-        }
-    }
-
-    /* --- Type Modal Functions --- */
-    function openTypeModal() {
-        document.getElementById('modalTabName').textContent = currentTab === 'makeup' ? '化妝品' : '保養品';
-        renderTypeListModal();
-        document.getElementById('typeModal').style.display = 'flex';
-    }
-
-    function closeTypeModal() {
-        document.getElementById('typeModal').style.display = 'none';
-        updateTypeSelect();
-    }
-
-    function renderTypeListModal() {
-        const list = document.getElementById('typeList');
-        list.innerHTML = '';
-        const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
-        types.forEach((type, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<span>${type}</span><button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeType(${index})"><i class="fa-solid fa-times"></i></button>`;
-            list.appendChild(li);
-        });
-    }
-
-    function addNewType() {
-        const input = document.getElementById('newTypeInput');
-        const val = input.value.trim();
-        if (val) {
-            userTypes[currentTab].push(val);
-            localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
-            input.value = '';
-            renderTypeListModal();
-        }
-    }
-
-    function removeType(index) {
-        if(confirm('確定刪除此種類？')) {
-            userTypes[currentTab].splice(index, 1);
-            localStorage.setItem('beautyTypes', JSON.stringify(userTypes));
-            renderTypeListModal();
-        }
-    }
-
-    /* --- Main Logic --- */
-    function addItem() {
+    window.addItem = async () => {
+        const addBtn = document.getElementById('addBtn');
         const brand = document.getElementById('brandInput').value.trim();
         const type = document.getElementById('typeInput').value;
         const name = document.getElementById('nameInput').value.trim();
@@ -718,76 +637,173 @@
             return;
         }
 
-        const newItem = {
-            id: Date.now(),
-            category: currentTab,
-            brand: brand,
-            type: type,
-            name: name,
-            capacity: capacity,
-            note: note,
-            buyDate: buyDate,
-            expiryDate: expiryDate,
-            isFinished: false,
-            isUsing: false
-        };
+        addBtn.disabled = true;
+        addBtn.textContent = "儲存中...";
 
-        items.push(newItem);
-        saveData();
-        
-        document.getElementById('brandInput').value = '';
-        document.getElementById('nameInput').value = '';
-        document.getElementById('capacityInput').value = '';
-        document.getElementById('noteInput').value = '';
-        document.getElementById('buyDateInput').value = '';
-        document.getElementById('expiryDateInput').value = '';
-        
-        currentBrandFilter = 'all';
-        currentTypeFilter = 'all';
-        renderList();
-    }
+        try {
+            await addDoc(collection(db, "items"), {
+                category: currentTab,
+                brand, type, name, capacity, note, buyDate, expiryDate,
+                isFinished: false,
+                isUsing: false,
+                createdAt: new Date().toISOString()
+            });
 
-    function toggleUsing(id) {
+            // 清空欄位
+            document.getElementById('brandInput').value = '';
+            document.getElementById('nameInput').value = '';
+            document.getElementById('capacityInput').value = '';
+            document.getElementById('noteInput').value = '';
+            document.getElementById('buyDateInput').value = '';
+            document.getElementById('expiryDateInput').value = '';
+            
+            currentBrandFilter = 'all';
+            currentTypeFilter = 'all';
+        } catch (e) {
+            console.error("Error adding document: ", e);
+            alert("新增失敗，請檢查網路連線");
+        } finally {
+            addBtn.disabled = false;
+            addBtn.textContent = "加入清單 (好累...)";
+        }
+    };
+
+    window.toggleUsing = async (id) => {
         const item = items.find(i => i.id === id);
         if (item) {
-            item.isUsing = !item.isUsing;
-            if (item.isUsing) item.isFinished = false;
-            saveData();
-            renderList(false);
+            await updateDoc(doc(db, "items", id), {
+                isUsing: !item.isUsing,
+                isFinished: false
+            });
         }
-    }
+    };
 
-    function toggleFinish(id) {
+    window.toggleFinish = async (id) => {
         const item = items.find(i => i.id === id);
         if (item) {
-            item.isFinished = !item.isFinished;
-            if (item.isFinished) item.isUsing = false;
-            saveData();
-            renderList(false);
+            await updateDoc(doc(db, "items", id), {
+                isFinished: !item.isFinished,
+                isUsing: false
+            });
         }
-    }
+    };
 
-    function deleteItem(id) {
+    window.deleteItem = async (id) => {
         if(confirm('確定要永久刪除這個項目嗎？')) {
-            items = items.filter(item => item.id !== id);
-            saveData();
-            renderList();
+            await deleteDoc(doc(db, "items", id));
         }
-    }
+    };
 
-    function saveData() {
-        localStorage.setItem('beautyItems', JSON.stringify(items));
-    }
-
-    function filterChange() {
+    window.filterChange = () => {
         currentBrandFilter = document.getElementById('brandFilter').value;
         currentTypeFilter = document.getElementById('typeFilter').value;
         renderList(false);
-    }
+    };
 
-    function sortChange() {
+    window.sortChange = () => {
         currentSort = document.getElementById('sortSelect').value;
         renderList(false);
+    };
+
+    // --- Helper Functions ---
+    function updateTypeSelect() {
+        const select = document.getElementById('typeInput');
+        select.innerHTML = '<option value="" disabled selected>請選擇種類</option>';
+        const types = userSettings.types[currentTab];
+        types.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            select.appendChild(option);
+        });
+    }
+
+    function updateBrandDatalist() {
+        const datalist = document.getElementById('brandList');
+        datalist.innerHTML = '';
+        userSettings.brands.sort();
+        userSettings.brands.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand;
+            datalist.appendChild(option);
+        });
+    }
+
+    // Modal Functions (Settings)
+    window.openTypeModal = () => {
+        document.getElementById('modalTabName').textContent = currentTab === 'makeup' ? '化妝品' : '保養品';
+        renderTypeListModal();
+        document.getElementById('typeModal').style.display = 'flex';
+    };
+    window.closeTypeModal = () => { document.getElementById('typeModal').style.display = 'none'; updateTypeSelect(); };
+    
+    window.openBrandModal = () => {
+        renderBrandListModal();
+        document.getElementById('brandModal').style.display = 'flex';
+    };
+    window.closeBrandModal = () => { document.getElementById('brandModal').style.display = 'none'; updateBrandDatalist(); };
+
+    function renderTypeListModal() {
+        const list = document.getElementById('typeList');
+        list.innerHTML = '';
+        userSettings.types[currentTab].forEach((type, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${type}</span><button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeType(${index})"><i class="fa-solid fa-times"></i></button>`;
+            list.appendChild(li);
+        });
+    }
+
+    function renderBrandListModal() {
+        const list = document.getElementById('modalBrandList');
+        list.innerHTML = '';
+        userSettings.brands.forEach((brand, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${brand}</span><button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeBrand(${index})"><i class="fa-solid fa-times"></i></button>`;
+            list.appendChild(li);
+        });
+    }
+
+    window.addNewType = () => {
+        const input = document.getElementById('newTypeInput');
+        const val = input.value.trim();
+        if (val) {
+            userSettings.types[currentTab].push(val);
+            saveSettings();
+            input.value = '';
+            renderTypeListModal();
+        }
+    };
+
+    window.removeType = (index) => {
+        if(confirm('確定刪除此種類？')) {
+            userSettings.types[currentTab].splice(index, 1);
+            saveSettings();
+            renderTypeListModal();
+        }
+    };
+
+    window.addNewBrand = () => {
+        const input = document.getElementById('newBrandInput');
+        const val = input.value.trim();
+        if (val && !userSettings.brands.includes(val)) {
+            userSettings.brands.push(val);
+            userSettings.brands.sort();
+            saveSettings();
+            input.value = '';
+            renderBrandListModal();
+        }
+    };
+
+    window.removeBrand = (index) => {
+        if(confirm('確定刪除此品牌？')) {
+            userSettings.brands.splice(index, 1);
+            saveSettings();
+            renderBrandListModal();
+        }
+    };
+
+    function saveSettings() {
+        localStorage.setItem('beautySettings', JSON.stringify(userSettings));
     }
 
     function renderList(reBuildFilter = true) {
@@ -809,7 +825,8 @@
             });
             brandFilterSelect.value = currentBrandFilter;
 
-            const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
+            // 使用所有設定的種類做篩選清單
+            const types = userSettings.types[currentTab];
             typeFilterSelect.innerHTML = '<option value="all">顯示全部</option>';
             types.forEach(type => {
                 const option = document.createElement('option');
@@ -821,21 +838,13 @@
         }
 
         let displayItems = tabItems;
-        if (currentBrandFilter !== 'all') {
-            displayItems = displayItems.filter(item => item.brand === currentBrandFilter);
-        }
-        if (currentTypeFilter !== 'all') {
-            displayItems = displayItems.filter(item => item.type === currentTypeFilter);
-        }
+        if (currentBrandFilter !== 'all') displayItems = displayItems.filter(item => item.brand === currentBrandFilter);
+        if (currentTypeFilter !== 'all') displayItems = displayItems.filter(item => item.type === currentTypeFilter);
 
         displayItems.sort((a, b) => {
             let weightA = a.isFinished ? 1 : (a.isUsing ? -1 : 0);
             let weightB = b.isFinished ? 1 : (b.isUsing ? -1 : 0);
-
-            if (weightA !== weightB) {
-                return weightA - weightB;
-            }
-
+            if (weightA !== weightB) return weightA - weightB;
             const dateA = new Date(a.expiryDate);
             const dateB = new Date(b.expiryDate);
             return currentSort === 'asc' ? dateA - dateB : dateB - dateA;
@@ -844,7 +853,7 @@
         if (displayItems.length === 0) {
             listContainer.innerHTML = `
                 <li class="empty-state">
-                    <img src="./gudetama2.png" class="logo-img" alt="蛋黃哥"><br>
+                    <img src="./gudetama2.png" class="empty-img" alt="蛋黃哥"><br>
                     <span class="empty-text">啊...好累...這裡什麼都沒有...</span>
                 </li>`;
             return;
@@ -895,9 +904,7 @@
             const usingHtml = item.isUsing && !item.isFinished ? `<span class="item-using-badge"><i class="fa-solid fa-sparkles"></i> 使用中</span>` : '';
             const buyDateHtml = item.buyDate ? `<span class="item-buy-date"> (購於 ${item.buyDate})</span>` : '';
             
-            const dateDisplay = item.isFinished 
-                ? icon 
-                : `${icon} 到期日：${item.expiryDate} <span class="status-text">${statusText}</span>`;
+            const dateDisplay = item.isFinished ? icon : `${icon} 到期日：${item.expiryDate} <span class="status-text">${statusText}</span>`;
 
             const li = document.createElement('li');
             li.innerHTML = `
@@ -905,27 +912,23 @@
                     <div class="item-info">
                         <div class="item-header">
                             <div class="item-brand">${item.brand}</div>
-                            ${typeHtml}
-                            ${capacityHtml}
-                            ${usingHtml}
+                            ${typeHtml} ${capacityHtml} ${usingHtml}
                         </div>
                         <div class="item-name">${item.name}</div>
                         ${noteHtml}
                         <div class="item-dates">
-                            <div class="item-expiry-date">
-                                ${dateDisplay}
-                            </div>
+                            <div class="item-expiry-date">${dateDisplay}</div>
                             ${buyDateHtml}
                         </div>
                     </div>
                     <div class="actions">
-                        <button class="btn-icon using-btn" onclick="toggleUsing(${item.id})" title="${item.isUsing ? '取消使用中' : '標記使用中'}" ${item.isFinished ? 'disabled' : ''}>
+                        <button class="btn-icon using-btn" onclick="toggleUsing('${item.id}')" title="${item.isUsing ? '取消使用中' : '標記使用中'}" ${item.isFinished ? 'disabled' : ''}>
                             <i class="fa-solid ${item.isUsing ? 'fa-box-open' : 'fa-box'}"></i>
                         </button>
-                        <button class="btn-icon finish-btn" onclick="toggleFinish(${item.id})" title="${item.isFinished ? '復原' : '標記已用完'}">
+                        <button class="btn-icon finish-btn" onclick="toggleFinish('${item.id}')" title="${item.isFinished ? '復原' : '標記已用完'}">
                             <i class="fa-solid ${item.isFinished ? 'fa-rotate-left' : 'fa-check'}"></i>
                         </button>
-                        <button class="btn-icon delete-btn" onclick="deleteItem(${item.id})" title="永久刪除">
+                        <button class="btn-icon delete-btn" onclick="deleteItem('${item.id}')" title="永久刪除">
                             <i class="fa-solid fa-trash-can"></i>
                         </button>
                     </div>
@@ -934,6 +937,9 @@
             listContainer.appendChild(li);
         });
     }
+
+    // 初始化
+    loadSettings();
 </script>
 
 </body>
