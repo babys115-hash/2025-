@@ -983,4 +983,29 @@
                         ${noteHtml}
                         <div class="item-dates">
                             <div class="item-expiry-date">${dateDisplay}</div>
-                            ${buy
+                            ${buyDateHtml}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-icon using-btn" onclick="toggleUsing('${item.id}')" title="${item.isUsing ? '取消使用中' : '標記使用中'}" ${item.isFinished ? 'disabled' : ''}>
+                            <i class="fa-solid ${item.isUsing ? 'fa-box-open' : 'fa-box'}"></i>
+                        </button>
+                        <button class="btn-icon finish-btn" onclick="toggleFinish('${item.id}')" title="${item.isFinished ? '復原' : '標記已用完'}">
+                            <i class="fa-solid ${item.isFinished ? 'fa-rotate-left' : 'fa-check'}"></i>
+                        </button>
+                        <button class="btn-icon delete-btn" onclick="deleteItem('${item.id}')" title="永久刪除">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            listContainer.appendChild(li);
+        });
+    }
+
+    // 初始化
+    loadSettings();
+</script>
+
+</body>
+</html>
