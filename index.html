@@ -5,28 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>美妝用品期限管理小幫手</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/en/7/73/Gudetama.png" type="image/png">
+    
     <style>
         :root {
-            --primary-pink: #FF9EAA;
-            --soft-pink: #FFF0F5;
-            --text-color: #555;
+            --gudetama-yellow: #FFD93D;
+            --gudetama-text: #5D4037;
+            --soft-bg: #FFFDF5; 
+            
+            --primary-pink: #FF8BA0;
             --danger-color: #ff4757;
             --warning-color: #ffa502;
             --safe-color: #2ed573;
             --gray-color: #a4b0be;
             --done-color: #ced6e0;
-            --tag-bg: #e2e7ff;
-            --tag-text: #5c7cfa;
+            --tag-bg: #FFEFB8;
+            --tag-text: #E67E22;
             --capacity-bg: #f1f2f6;
             --capacity-text: #747d8c;
+            --using-bg: #E3F2FD; /* 使用中背景色 */
+            --using-text: #1976D2;
         }
 
         body {
             font-family: 'Segoe UI', Microsoft JhengHei, sans-serif;
-            background-color: #fdfbf7;
+            background-color: var(--soft-bg);
+            background-image: radial-gradient(#ffeaa7 10%, transparent 10%), radial-gradient(#ffeaa7 10%, transparent 10%);
+            background-position: 0 0, 25px 25px;
+            background-size: 50px 50px;
             margin: 0;
             padding: 20px;
-            color: var(--text-color);
+            color: var(--gudetama-text);
             display: flex;
             justify-content: center;
         }
@@ -35,27 +44,42 @@
             width: 100%;
             max-width: 600px;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
             overflow: hidden;
-            padding: 20px;
+            padding: 25px;
             position: relative;
+            border: 4px solid #fff;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
         h1 {
-            text-align: center;
-            color: var(--primary-pink);
-            margin-bottom: 20px;
-            font-size: 1.5em; /* 手機版標題字體稍微縮小以防換行 */
+            color: var(--gudetama-text);
+            margin: 10px 0;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        /* Tabs */
+        .logo-img {
+            width: 60px;
+            height: auto;
+            transform: rotate(-10deg);
+        }
+
         .tabs {
             display: flex;
             margin-bottom: 20px;
-            background: var(--soft-pink);
-            border-radius: 15px;
+            background: #FFF8E1;
+            border-radius: 20px;
             padding: 5px;
+            border: 2px solid #FFE082;
         }
 
         .tab-btn {
@@ -64,27 +88,26 @@
             border: none;
             background: transparent;
             cursor: pointer;
-            border-radius: 12px;
+            border-radius: 15px;
             font-size: 16px;
             font-weight: bold;
-            color: #888;
+            color: #FFB300;
             transition: 0.3s;
         }
 
         .tab-btn.active {
-            background: white;
-            color: var(--primary-pink);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            background: var(--gudetama-yellow);
+            color: var(--gudetama-text);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* Input Form */
         .input-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-bottom: 15px;
             padding-bottom: 15px;
-            border-bottom: 1px dashed #eee;
+            border-bottom: 2px dashed #eee;
         }
 
         .type-select-wrapper {
@@ -111,75 +134,84 @@
 
         input, select {
             padding: 12px;
-            border: 2px solid #eee;
-            border-radius: 10px;
+            border: 2px solid #FFE082;
+            border-radius: 12px;
             outline: none;
             transition: 0.3s;
             width: 100%;
             box-sizing: border-box;
             font-size: 1em;
-            background-color: white;
+            background-color: #FFFDF5;
+            color: var(--gudetama-text);
         }
 
         input:focus, select:focus {
-            border-color: var(--primary-pink);
+            border-color: var(--gudetama-yellow);
+            box-shadow: 0 0 0 3px rgba(255, 217, 61, 0.3);
+            background-color: white;
         }
 
         .full-width { grid-column: 1 / -1; }
 
         .date-label {
             font-size: 0.85em;
-            color: #999;
+            color: #8D6E63;
             margin-bottom: 3px;
             display: block;
             margin-left: 5px;
+            font-weight: bold;
         }
 
         .add-btn {
             padding: 12px;
-            background-color: var(--primary-pink);
-            color: white;
+            background-color: var(--gudetama-yellow);
+            color: var(--gudetama-text);
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: bold;
             font-size: 1em;
+            box-shadow: 0 4px 0 #FBC02D;
+            transition: 0.1s;
+            margin-top: 5px;
         }
 
-        .add-btn:hover { opacity: 0.9; }
+        .add-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
 
-        /* Filter & Sort Bar */
         .filter-bar {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             margin-bottom: 15px;
             gap: 10px;
-            background-color: #f8f9fa;
+            background-color: #FFF8E1;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 15px;
+            border: 1px solid #FFE082;
         }
         
         .filter-item {
             flex: 1;
-            min-width: 140px;
+            min-width: 130px;
         }
 
         .filter-label {
             font-size: 0.85em;
-            color: #999;
+            color: #8D6E63;
             font-weight: bold;
             display: block;
             margin-bottom: 5px;
         }
 
-        /* List */
         ul { list-style: none; padding: 0; }
 
         .item-card {
             background: white;
-            border: 1px solid #eee;
-            border-radius: 12px;
+            border: 2px solid #FFF176;
+            border-radius: 15px;
             padding: 15px;
             margin-bottom: 10px;
             display: flex;
@@ -203,12 +235,12 @@
         .item-brand {
             font-weight: bold;
             font-size: 1.1em;
-            color: #333;
+            color: var(--gudetama-text);
         }
 
         .item-type-badge {
-            background-color: var(--tag-bg);
-            color: var(--tag-text);
+            background-color: #FFECB3;
+            color: #E65100;
             font-size: 0.75em;
             padding: 2px 8px;
             border-radius: 20px;
@@ -216,12 +248,25 @@
         }
 
         .item-capacity-badge {
-            background-color: var(--capacity-bg);
-            color: var(--capacity-text);
+            background-color: #f1f2f6;
+            color: #747d8c;
             font-size: 0.75em;
             padding: 2px 8px;
             border-radius: 20px;
             font-weight: bold;
+        }
+
+        /* 新增：使用中標籤 */
+        .item-using-badge {
+            background-color: var(--using-bg);
+            color: var(--using-text);
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
         }
 
         .item-name { 
@@ -260,7 +305,6 @@
             color: #aaa;
         }
 
-        /* Actions Buttons */
         .actions {
             display: flex;
             flex-direction: column;
@@ -271,7 +315,7 @@
         .btn-icon {
             width: 32px;
             height: 32px;
-            border-radius: 8px;
+            border-radius: 10px;
             border: none;
             cursor: pointer;
             display: flex;
@@ -281,11 +325,15 @@
             transition: 0.2s;
         }
 
-        .finish-btn { background-color: #f1f2f6; color: #a4b0be; }
+        .using-btn { background-color: #E3F2FD; color: #1976D2; }
+        .using-btn:hover { background-color: #2196F3; color: white; }
+        .is-using .using-btn { background-color: #2196F3; color: white; }
+
+        .finish-btn { background-color: #FFF9C4; color: #FBC02D; }
         .finish-btn:hover { background-color: var(--safe-color); color: white; }
         .finished .finish-btn { background-color: var(--safe-color); color: white; }
 
-        .delete-btn { background-color: #fff0f0; color: #ff6b6b; }
+        .delete-btn { background-color: #FFEBEE; color: #ff6b6b; }
         .delete-btn:hover { background-color: var(--danger-color); color: white; }
 
         /* Status Styles */
@@ -293,27 +341,47 @@
         .expired .item-brand { color: var(--gray-color); text-decoration: line-through; }
         .expired .status-text { color: var(--danger-color); font-weight: bold; }
 
-        .warning { border-left: 5px solid var(--danger-color); background-color: #fff5f5; }
+        .warning { border-left: 5px solid var(--danger-color); background-color: #FFF3E0; }
         .warning .item-expiry-date { color: var(--danger-color); font-weight: bold; }
 
         .safe { border-left: 5px solid var(--safe-color); }
         .safe .item-expiry-date { color: var(--safe-color); }
 
+        /* 使用中特別樣式：藍色邊框 */
+        .is-using {
+            border-left: 5px solid #2196F3;
+            background-color: #F8FDFF;
+        }
+
         .finished {
             border-left: 5px solid var(--done-color);
             background-color: #f8f9fa;
             opacity: 0.6;
+            border-color: #eee;
         }
-        .finished .item-brand, .finished .item-name, .finished .item-note, .finished .item-expiry-date, .finished .item-buy-date, .finished .item-type-badge, .finished .item-capacity-badge {
+        .finished .item-brand, .finished .item-name, .finished .item-note, .finished .item-expiry-date, .finished .item-buy-date, .finished .item-type-badge, .finished .item-capacity-badge, .finished .item-using-badge {
             text-decoration: line-through;
             color: var(--gray-color);
-            background-color: #eee;
+            background-color: transparent;
         }
         .finished .status-text { display: none; }
 
-        .empty-message { text-align: center; color: #ccc; margin-top: 30px; }
+        .empty-state {
+            text-align: center;
+            color: #8D6E63;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+        .empty-img {
+            width: 150px;
+            margin-bottom: 10px;
+        }
+        .empty-text {
+            font-size: 1.1em;
+            font-weight: bold;
+            display: block;
+        }
 
-        /* Modal */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0;
@@ -327,12 +395,13 @@
         .modal {
             background: white;
             padding: 20px;
-            border-radius: 15px;
+            border-radius: 20px;
             width: 300px;
             max-width: 90%;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            border: 4px solid var(--gudetama-yellow);
         }
-        .modal h3 { margin-top: 0; color: #333; }
+        .modal h3 { margin-top: 0; color: var(--gudetama-text); text-align: center;}
         .modal-input-group {
             display: flex;
             gap: 5px;
@@ -343,22 +412,23 @@
             padding: 0;
             max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #eee;
-            border-radius: 5px;
+            border: 2px solid #FFF59D;
+            border-radius: 10px;
         }
         .modal-list li {
             display: flex;
             justify-content: space-between;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
+            padding: 10px;
+            border-bottom: 1px solid #FFF59D;
+            color: var(--gudetama-text);
         }
         .modal-list li:last-child { border-bottom: none; }
         .modal-close-btn {
             width: 100%;
             padding: 10px;
-            background: #eee;
+            background: #F5F5F5;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-top: 10px;
             cursor: pointer;
             font-weight: bold;
@@ -369,16 +439,20 @@
 <body>
 
 <div class="container">
-    <h1><i class="fa-solid fa-pump-soap"></i> 美妝用品期限管理小幫手</h1>
+    <div class="header-section">
+        <h1>
+            <img src="./gudetama.png" class="logo-img" alt="蛋黃哥">
+            美妝用品期限管理
+        </h1>
+        <p style="font-size: 0.9em; color: #8D6E63; margin-top: 0;">好麻煩喔...還是記錄一下好了...</p>
+    </div>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('makeup')">💄 化妝品</button>
         <button class="tab-btn" onclick="switchTab('skincare')">🧴 保養品</button>
     </div>
 
-    <!-- 輸入區塊 -->
     <div class="input-group">
-        <!-- 品牌輸入 (Datalist) -->
         <div style="position: relative;">
             <input type="text" id="brandInput" list="brandList" placeholder="品牌 (打字搜尋)" />
             <datalist id="brandList">
@@ -407,19 +481,13 @@
             </datalist>
         </div>
         
-        <!-- 種類選擇 -->
         <div class="type-select-wrapper">
-            <select id="typeInput">
-                <!-- JS 自動填入 -->
-            </select>
+            <select id="typeInput"></select>
             <button class="manage-btn" onclick="openTypeModal()" title="管理種類"><i class="fa-solid fa-gear"></i></button>
         </div>
         
         <input type="text" id="nameInput" placeholder="品名 (例: 小黑瓶)" />
-        
-        <!-- 新增：容量欄位 -->
         <input type="text" id="capacityInput" placeholder="容量 (選填，例: 50ml)" />
-        
         <input type="text" id="noteInput" placeholder="附註 (選填，例: #05號色)" class="full-width" />
         
         <div class="full-width">
@@ -432,14 +500,19 @@
             <input type="date" id="expiryDateInput" />
         </div>
 
-        <button class="add-btn full-width" onclick="addItem()">新 增</button>
+        <button class="add-btn full-width" onclick="addItem()">加入清單 (好累...)</button>
     </div>
 
-    <!-- 篩選與排序 -->
     <div class="filter-bar">
         <div class="filter-item">
             <span class="filter-label"><i class="fa-solid fa-filter"></i> 品牌篩選</span>
             <select id="brandFilter" onchange="filterChange()">
+                <option value="all">顯示全部</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <span class="filter-label"><i class="fa-solid fa-tags"></i> 種類篩選</span>
+            <select id="typeFilter" onchange="filterChange()">
                 <option value="all">顯示全部</option>
             </select>
         </div>
@@ -455,7 +528,6 @@
     <ul id="itemList"></ul>
 </div>
 
-<!-- 種類管理視窗 (Modal) -->
 <div id="typeModal" class="modal-overlay">
     <div class="modal">
         <h3>管理種類 (<span id="modalTabName">化妝品</span>)</h3>
@@ -471,6 +543,7 @@
 <script>
     let currentTab = 'makeup';
     let currentBrandFilter = 'all';
+    let currentTypeFilter = 'all'; 
     let currentSort = 'asc';
     let items = JSON.parse(localStorage.getItem('beautyItems')) || [];
 
@@ -493,6 +566,7 @@
     function switchTab(tab) {
         currentTab = tab;
         currentBrandFilter = 'all';
+        currentTypeFilter = 'all';
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         const btnIndex = tab === 'makeup' ? 0 : 1;
         document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
@@ -503,9 +577,7 @@
     function updateTypeSelect() {
         const select = document.getElementById('typeInput');
         select.innerHTML = '<option value="" disabled selected>請選擇種類</option>';
-        
         const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
-        
         types.forEach(type => {
             const option = document.createElement('option');
             option.value = type;
@@ -514,7 +586,6 @@
         });
     }
 
-    /* Modal Functions */
     function openTypeModal() {
         document.getElementById('modalTabName').textContent = currentTab === 'makeup' ? '化妝品' : '保養品';
         renderTypeListModal();
@@ -530,15 +601,9 @@
         const list = document.getElementById('typeList');
         list.innerHTML = '';
         const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
-        
         types.forEach((type, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${type}</span>
-                <button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeType(${index})">
-                    <i class="fa-solid fa-times"></i>
-                </button>
-            `;
+            li.innerHTML = `<span>${type}</span><button class="delete-btn" style="padding: 2px 8px; font-size: 0.8em;" onclick="removeType(${index})"><i class="fa-solid fa-times"></i></button>`;
             list.appendChild(li);
         });
     }
@@ -586,7 +651,8 @@
             note: note,
             buyDate: buyDate,
             expiryDate: expiryDate,
-            isFinished: false
+            isFinished: false,
+            isUsing: false // 新增使用中狀態
         };
 
         items.push(newItem);
@@ -599,14 +665,29 @@
         document.getElementById('buyDateInput').value = '';
         document.getElementById('expiryDateInput').value = '';
         
-        currentBrandFilter = 'all'; 
+        currentBrandFilter = 'all';
+        currentTypeFilter = 'all';
         renderList();
+    }
+
+    // 切換使用中狀態
+    function toggleUsing(id) {
+        const item = items.find(i => i.id === id);
+        if (item) {
+            item.isUsing = !item.isUsing;
+            // 如果切換成使用中，確保不會同時是已用完
+            if (item.isUsing) item.isFinished = false;
+            saveData();
+            renderList(false);
+        }
     }
 
     function toggleFinish(id) {
         const item = items.find(i => i.id === id);
         if (item) {
             item.isFinished = !item.isFinished;
+            // 如果切換成已用完，使用中狀態要取消
+            if (item.isFinished) item.isUsing = false;
             saveData();
             renderList(false);
         }
@@ -626,6 +707,7 @@
 
     function filterChange() {
         currentBrandFilter = document.getElementById('brandFilter').value;
+        currentTypeFilter = document.getElementById('typeFilter').value;
         renderList(false);
     }
 
@@ -636,37 +718,63 @@
 
     function renderList(reBuildFilter = true) {
         const listContainer = document.getElementById('itemList');
-        const filterSelect = document.getElementById('brandFilter');
+        const brandFilterSelect = document.getElementById('brandFilter');
+        const typeFilterSelect = document.getElementById('typeFilter');
         listContainer.innerHTML = '';
 
         let tabItems = items.filter(item => item.category === currentTab);
 
         if (reBuildFilter) {
             const brands = [...new Set(tabItems.map(item => item.brand))].sort();
-            filterSelect.innerHTML = '<option value="all">顯示全部</option>';
+            brandFilterSelect.innerHTML = '<option value="all">顯示全部</option>';
             brands.forEach(brand => {
                 const option = document.createElement('option');
                 option.value = brand;
                 option.textContent = brand;
-                filterSelect.appendChild(option);
+                brandFilterSelect.appendChild(option);
             });
-            filterSelect.value = currentBrandFilter;
+            brandFilterSelect.value = currentBrandFilter;
+
+            const types = userTypes && userTypes[currentTab] ? userTypes[currentTab] : defaultTypes[currentTab];
+            typeFilterSelect.innerHTML = '<option value="all">顯示全部</option>';
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeFilterSelect.appendChild(option);
+            });
+            typeFilterSelect.value = currentTypeFilter;
         }
 
         let displayItems = tabItems;
         if (currentBrandFilter !== 'all') {
-            displayItems = tabItems.filter(item => item.brand === currentBrandFilter);
+            displayItems = displayItems.filter(item => item.brand === currentBrandFilter);
+        }
+        if (currentTypeFilter !== 'all') {
+            displayItems = displayItems.filter(item => item.type === currentTypeFilter);
         }
 
         displayItems.sort((a, b) => {
-            if (a.isFinished !== b.isFinished) return a.isFinished ? 1 : -1;
+            // 排序邏輯：已用完 > 未使用 > 使用中 (使用中排最上面)
+            // 權重：使用中(-1) < 未使用(0) < 已用完(1)
+            let weightA = a.isFinished ? 1 : (a.isUsing ? -1 : 0);
+            let weightB = b.isFinished ? 1 : (b.isUsing ? -1 : 0);
+
+            if (weightA !== weightB) {
+                return weightA - weightB;
+            }
+
             const dateA = new Date(a.expiryDate);
             const dateB = new Date(b.expiryDate);
             return currentSort === 'asc' ? dateA - dateB : dateB - dateA;
         });
 
         if (displayItems.length === 0) {
-            listContainer.innerHTML = '<li class="empty-message">目前沒有資料。</li>';
+            listContainer.innerHTML = `
+                <li class="empty-state">
+                    <img src="https://upload.wikimedia.org/wikipedia/en/7/73/Gudetama.png" class="empty-img" alt="Gudetama"><br>
+                    <span class="empty-text">啊...好累...這裡什麼都沒有...</span>
+                </li>`;
             return;
         }
 
@@ -685,6 +793,16 @@
             if (item.isFinished) {
                 statusClass = 'finished';
                 icon = '<i class="fa-solid fa-check-circle"></i> 已用完';
+            } else if (item.isUsing) {
+                statusClass = 'is-using';
+                // 使用中也會計算過期日，但樣式不同
+                if (diffDays < 0) {
+                    statusText = `(使用中，已過期 ${Math.abs(diffDays)} 天)`;
+                    icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                } else {
+                    statusText = `(使用中，剩餘 ${diffDays} 天)`;
+                    icon = '<i class="fa-solid fa-clock"></i>';
+                }
             } else {
                 if (diffDays < 0) {
                     statusClass = 'expired';
@@ -703,6 +821,7 @@
             const noteHtml = item.note ? `<span class="item-note">${item.note}</span>` : '';
             const typeHtml = item.type ? `<span class="item-type-badge">${item.type}</span>` : '';
             const capacityHtml = item.capacity ? `<span class="item-capacity-badge">${item.capacity}</span>` : '';
+            const usingHtml = item.isUsing && !item.isFinished ? `<span class="item-using-badge"><i class="fa-solid fa-sparkles"></i> 使用中</span>` : '';
             const buyDateHtml = item.buyDate ? `<span class="item-buy-date"> (購於 ${item.buyDate})</span>` : '';
             
             const dateDisplay = item.isFinished 
@@ -717,6 +836,7 @@
                             <div class="item-brand">${item.brand}</div>
                             ${typeHtml}
                             ${capacityHtml}
+                            ${usingHtml}
                         </div>
                         <div class="item-name">${item.name}</div>
                         ${noteHtml}
@@ -728,6 +848,9 @@
                         </div>
                     </div>
                     <div class="actions">
+                        <button class="btn-icon using-btn" onclick="toggleUsing(${item.id})" title="${item.isUsing ? '取消使用中' : '標記使用中'}" ${item.isFinished ? 'disabled' : ''}>
+                            <i class="fa-solid ${item.isUsing ? 'fa-box-open' : 'fa-box'}"></i>
+                        </button>
                         <button class="btn-icon finish-btn" onclick="toggleFinish(${item.id})" title="${item.isFinished ? '復原' : '標記已用完'}">
                             <i class="fa-solid ${item.isFinished ? 'fa-rotate-left' : 'fa-check'}"></i>
                         </button>
