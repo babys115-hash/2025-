@@ -51,8 +51,7 @@
             padding: 25px;
             position: relative;
             border: 4px solid #fff;
-            /* 防止容器本身溢出 */
-            box-sizing: border-box; 
+            box-sizing: border-box;
         }
 
         .header-section {
@@ -113,27 +112,27 @@
             border-bottom: 2px dashed #eee;
         }
 
-        /* 讓特定元素跨滿整行 */
         .full-width { grid-column: 1 / -1; }
 
-        /* --- 日期欄位優化 (解決手機跑版) --- */
+        /* --- 日期欄位優化 --- */
         .date-row {
-            grid-column: 1 / -1; /* 佔滿整行 */
+            grid-column: 1 / -1;
             display: flex;
-            gap: 10px; /* 兩個日期中間的間距 */
+            gap: 8px; /* 稍微縮小間距 */
+            flex-wrap: wrap; /* 允許換行 */
         }
 
         .date-group {
-            flex: 1; /* 兩個日期平分寬度 */
-            min-width: 0; /* 關鍵！防止內容撐破容器 */
+            flex: 1;
+            min-width: 130px; /* 如果寬度小於 130px 就換行 */
         }
-        /* --------------------------------- */
+        /* ------------------ */
 
         .select-wrapper, .type-select-wrapper, .name-input-wrapper {
             display: flex;
             gap: 5px;
             position: relative;
-            min-width: 0; /* 防止 Flex 子元素溢出 */
+            min-width: 0;
         }
         
         .name-input-wrapper input {
@@ -153,8 +152,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px; /* 固定寬度 */
-            height: 46px; /* 與 input 高度一致 (padding 12px + border 2px + font size) */
+            width: 40px;
+            height: 46px; 
         }
         .manage-btn:hover, .ocr-btn:hover { background-color: #e2e2e2; }
         
@@ -165,26 +164,26 @@
 
         @media (max-width: 480px) {
             .input-group {
-                grid-template-columns: 1fr; /* 手機版其餘欄位變一欄 */
+                grid-template-columns: 1fr;
             }
             .container {
-                padding: 15px; /* 手機版內距縮小，爭取空間 */
+                padding: 15px;
                 border-width: 2px;
             }
         }
 
         input, select {
-            padding: 10px 12px; /* 稍微調整 padding */
+            padding: 10px; /* 減少內距以節省空間 */
             border: 2px solid #FFE082;
             border-radius: 12px;
             outline: none;
             transition: 0.3s;
             width: 100%;
-            box-sizing: border-box; /* 確保寬度包含 padding */
-            font-size: 16px; /* 防止 iOS 自動縮放 */
+            box-sizing: border-box;
+            font-size: 16px;
             background-color: #FFFDF5;
             color: var(--gudetama-text);
-            height: 46px; /* 固定高度讓排版整齊 */
+            height: 46px;
         }
 
         input:focus, select:focus {
@@ -200,7 +199,7 @@
             display: block;
             margin-left: 2px;
             font-weight: bold;
-            white-space: nowrap; /* 防止文字換行 */
+            white-space: nowrap; 
         }
 
         .add-btn {
@@ -270,7 +269,7 @@
             overflow: hidden;
         }
 
-        .item-info { flex: 1; padding-left: 5px; min-width: 0; /* 防止文字過長撐開 */ }
+        .item-info { flex: 1; padding-left: 5px; min-width: 0; }
 
         .item-header {
             display: flex;
@@ -320,7 +319,7 @@
             font-size: 0.95em; 
             color: #666; 
             display: block;
-            word-break: break-all; /* 防止長單字撐版 */
+            word-break: break-all;
         }
 
         .item-note {
@@ -406,6 +405,25 @@
         .modal-list li { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #FFF59D; color: var(--gudetama-text); }
         .modal-list li:last-child { border-bottom: none; }
         .modal-close-btn { width: 100%; padding: 10px; background: #F5F5F5; border: none; border-radius: 10px; margin-top: 10px; cursor: pointer; font-weight: bold; color: #555; }
+
+        /* --- OCR Crop Modal --- */
+        .crop-container {
+            width: 100%;
+            height: 300px;
+            background-color: #f0f0f0;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .crop-container img {
+            max-width: 100%;
+            display: block; /* Important for Cropper.js */
+        }
+        .ocr-loading {
+            text-align: center;
+            color: #8D6E63;
+            font-weight: bold;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -440,7 +458,7 @@
         <!-- 品名 (包含 OCR 按鈕) -->
         <div class="name-input-wrapper">
             <input type="text" id="nameInput" placeholder="品名 (可拍照辨識 ->)" />
-            <input type="file" id="ocrInput" accept="image/*" style="display: none;" onchange="handleOCR(this)">
+            <input type="file" id="ocrInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
             <button class="ocr-btn" onclick="document.getElementById('ocrInput').click()" title="拍照辨識品名">
                 <i class="fa-solid fa-camera"></i>
             </button>
@@ -449,7 +467,7 @@
         <input type="text" id="capacityInput" placeholder="容量 (選填，例: 50ml)" />
         <input type="text" id="noteInput" placeholder="附註 (選填，例: #05號色)" class="full-width" />
         
-        <!-- 日期區塊：使用 Flexbox 並排 -->
+        <!-- 日期並排 -->
         <div class="date-row">
             <div class="date-group">
                 <span class="date-label">購買日期 (選填)</span>
@@ -522,15 +540,30 @@
     </div>
 </div>
 
+<!-- OCR 裁切視窗 -->
+<div id="ocrModal" class="modal-overlay">
+    <div class="modal">
+        <h3>選取要辨識的文字</h3>
+        <div class="crop-container">
+            <img id="cropImage" src="">
+        </div>
+        <div id="ocrLoading" class="ocr-loading">
+            <i class="fa-solid fa-spinner fa-spin"></i> 蛋黃哥努力辨識中...
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button class="modal-close-btn" onclick="closeOCRModal()" style="flex:1;">取消</button>
+            <button class="add-btn" onclick="performOCR()" style="flex:1; margin-top:10px;" id="ocrConfirmBtn">開始辨識</button>
+        </div>
+    </div>
+</div>
+
 <!-- Firebase SDK -->
 <script type="module">
-    // 1. 匯入 Firebase 模組
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 2. Firebase 設定 (請替換成您的設定!)
+    // TODO: 請務必填入您的 Firebase Config
     const firebaseConfig = {
-        // TODO: 請在這裡貼上您從 Firebase Console 複製的 Config
         apiKey: "YOUR_API_KEY",
         authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
         projectId: "YOUR_PROJECT_ID",
@@ -539,18 +572,83 @@
         appId: "YOUR_APP_ID"
     };
 
-    // 3. 初始化 Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 全域變數
+    // Global Vars
     let currentTab = 'makeup';
     let currentBrandFilter = 'all';
     let currentTypeFilter = 'all'; 
     let currentSort = 'asc';
     let items = [];
     
-    // 設定資料 (從雲端讀取或使用預設)
+    // OCR & Cropper Vars
+    let cropper = null;
+    window.handleFileSelect = (input) => {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.getElementById('cropImage');
+                img.src = e.target.result;
+                
+                document.getElementById('ocrModal').style.display = 'flex';
+                
+                // Init Cropper
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(img, {
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+        input.value = ''; // Reset input
+    };
+
+    window.closeOCRModal = () => {
+        document.getElementById('ocrModal').style.display = 'none';
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        document.getElementById('ocrLoading').style.display = 'none';
+        document.getElementById('ocrConfirmBtn').disabled = false;
+        document.getElementById('ocrConfirmBtn').textContent = "開始辨識";
+    };
+
+    window.performOCR = () => {
+        if (!cropper) return;
+        
+        const canvas = cropper.getCroppedCanvas();
+        if (!canvas) return;
+
+        // UI Loading
+        document.getElementById('ocrLoading').style.display = 'block';
+        document.getElementById('ocrConfirmBtn').disabled = true;
+        document.getElementById('ocrConfirmBtn').textContent = "辨識中...";
+
+        // Convert canvas to blob/image
+        canvas.toBlob((blob) => {
+             Tesseract.recognize(
+                blob,
+                'eng+chi_tra', // English + Traditional Chinese
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                const cleanText = text.replace(/\n/g, ' ').trim();
+                // 填入品名 (限制長度避免錯誤辨識過長)
+                document.getElementById('nameInput').value = cleanText.substring(0, 30);
+                
+                closeOCRModal();
+            }).catch(err => {
+                console.error(err);
+                alert("辨識失敗，請換張清晰的照片再試試");
+                closeOCRModal();
+            });
+        });
+    };
+
+    // User Settings
     let userSettings = {
         brands: [
             "Chanel", "Dior", "YSL", "Estee Lauder 雅詩蘭黛", "Lancome 蘭蔻", "SK-II", "Kiehl's 契爾氏",
@@ -564,14 +662,12 @@
         }
     };
 
-    // 監聽資料庫變化 (即時更新)
     const q = query(collection(db, "items"));
     onSnapshot(q, (snapshot) => {
         items = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
         renderList();
     });
 
-    // 讀取設定檔 (如果有的話)
     async function loadSettings() {
         let localSettings = JSON.parse(localStorage.getItem('beautySettings'));
         if(localSettings) {
@@ -580,37 +676,8 @@
         updateTypeSelect();
         updateBrandDatalist();
     }
-    
-    // --- OCR 功能實作 ---
-    window.handleOCR = (input) => {
-        if (input.files && input.files[0]) {
-            const btn = document.querySelector('.ocr-btn');
-            const icon = btn.querySelector('i');
-            
-            btn.classList.add('loading');
-            icon.className = "fa-solid fa-spinner";
 
-            Tesseract.recognize(
-                input.files[0],
-                'eng+chi_tra', 
-                { logger: m => console.log(m) }
-            ).then(({ data: { text } }) => {
-                const cleanText = text.replace(/\n/g, ' ').trim();
-                document.getElementById('nameInput').value = cleanText.substring(0, 20);
-                
-                btn.classList.remove('loading');
-                icon.className = "fa-solid fa-camera";
-                input.value = ''; 
-            }).catch(err => {
-                console.error(err);
-                alert("辨識失敗，請重試");
-                btn.classList.remove('loading');
-                icon.className = "fa-solid fa-camera";
-            });
-        }
-    }
-
-
+    // --- Core Functions ---
     window.switchTab = (tab) => {
         currentTab = tab;
         currentBrandFilter = 'all';
@@ -851,7 +918,7 @@
         if (displayItems.length === 0) {
             listContainer.innerHTML = `
                 <li class="empty-state">
-                    <img src="./gudetama2.png" class="empty-img" alt="蛋黃哥"><br>
+                    <img src="./gudetama2.png" class="logo-img" alt="蛋黃哥"><br>
                     <span class="empty-text">啊...好累...這裡什麼都沒有...</span>
                 </li>`;
             return;
@@ -916,29 +983,4 @@
                         ${noteHtml}
                         <div class="item-dates">
                             <div class="item-expiry-date">${dateDisplay}</div>
-                            ${buyDateHtml}
-                        </div>
-                    </div>
-                    <div class="actions">
-                        <button class="btn-icon using-btn" onclick="toggleUsing('${item.id}')" title="${item.isUsing ? '取消使用中' : '標記使用中'}" ${item.isFinished ? 'disabled' : ''}>
-                            <i class="fa-solid ${item.isUsing ? 'fa-box-open' : 'fa-box'}"></i>
-                        </button>
-                        <button class="btn-icon finish-btn" onclick="toggleFinish('${item.id}')" title="${item.isFinished ? '復原' : '標記已用完'}">
-                            <i class="fa-solid ${item.isFinished ? 'fa-rotate-left' : 'fa-check'}"></i>
-                        </button>
-                        <button class="btn-icon delete-btn" onclick="deleteItem('${item.id}')" title="永久刪除">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-            listContainer.appendChild(li);
-        });
-    }
-
-    // 初始化
-    loadSettings();
-</script>
-
-</body>
-</html>
+                            ${buy
